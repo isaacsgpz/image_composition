@@ -85,6 +85,18 @@ public class Main extends JFrame {
             var personTransparentBackground = setTransparentBackground(personRGBMatrix);
 
             var landscapeRGBMatrix = getRGBMatrix(selectedLandscapeImage);
+
+            var composedRGBAMatrix = compositePersonOverLandscape(personTransparentBackground, landscapeRGBMatrix);
+            saveProcessedPersonImage(composedRGBAMatrix, "composed_person_landscape.png");
+        }
+    }
+
+    private void compositePersonInLandscapeSmooth() {
+        if (validateImagesAreSelected()) {
+            var personRGBMatrix = getRGBMatrix(selectedPersonImage);
+            var personTransparentBackground = setTransparentBackground(personRGBMatrix);
+
+            var landscapeRGBMatrix = getRGBMatrix(selectedLandscapeImage);
         }
     }
 
@@ -113,14 +125,6 @@ public class Main extends JFrame {
         } catch (IOException ex) {
             ex.printStackTrace();
             displayAlertDialog("Erro ao salvar imagem processada.");
-        }
-    }
-
-
-    private void compositePersonInLandscapeSmooth() {
-        if (validateImagesAreSelected()) {
-            var personRGBMatrix = getRGBMatrix(selectedPersonImage);
-            var landscapeRGBMatrix = getRGBMatrix(selectedLandscapeImage);
         }
     }
 
@@ -180,6 +184,45 @@ public class Main extends JFrame {
         return newRGBMatrix;
     }
 
+    private int[][][] compositePersonOverLandscape(int[][][] personRGBMatrix, int[][][] landscapeRGBMatrix) {
+        int width = landscapeRGBMatrix.length;
+        int height = landscapeRGBMatrix[0].length;
+
+        // Criar uma nova matriz RGBA para a imagem composta
+        int[][][] composedRGBAMatrix = new int[width][height][4];
+
+        // Copiar a paisagem para a matriz composta
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                composedRGBAMatrix[x][y][0] = landscapeRGBMatrix[x][y][0]; // R
+                composedRGBAMatrix[x][y][1] = landscapeRGBMatrix[x][y][1]; // G
+                composedRGBAMatrix[x][y][2] = landscapeRGBMatrix[x][y][2]; // B
+                composedRGBAMatrix[x][y][3] = 255; // A (totalmente opaco)
+            }
+        }
+
+        // Sobrepor a imagem da pessoa com fundo transparente na matriz composta
+        int personWidth = personRGBMatrix.length;
+        int personHeight = personRGBMatrix[0].length;
+
+        // Calcular a posição centralizada para a pessoa na paisagem
+        int startX = (width - personWidth) / 2;
+        int startY = (height - personHeight) / 2;
+
+        for (int x = 0; x < personWidth; x++) {
+            for (int y = 0; y < personHeight; y++) {
+                // Copiar os pixels da pessoa para a matriz composta, mantendo a transparência
+                if (personRGBMatrix[x][y][3] > 0) { // Verificar se o pixel da pessoa não é transparente
+                    composedRGBAMatrix[startX + x][startY + y][0] = personRGBMatrix[x][y][0]; // R
+                    composedRGBAMatrix[startX + x][startY + y][1] = personRGBMatrix[x][y][1]; // G
+                    composedRGBAMatrix[startX + x][startY + y][2] = personRGBMatrix[x][y][2]; // B
+                    composedRGBAMatrix[startX + x][startY + y][3] = personRGBMatrix[x][y][3]; // A (transparência)
+                }
+            }
+        }
+
+        return composedRGBAMatrix;
+    }
 
     private void selectImage(boolean isPersonImage) {
         JFileChooser fileChooser = new JFileChooser();
