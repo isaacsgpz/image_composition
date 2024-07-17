@@ -22,7 +22,7 @@ public class Main extends JFrame {
     private BufferedImage selectedLandscapeImage;
 
     public Main() {
-        super("Photo Viewer");
+        super("Composição de imagens");
         setSize(1400, 840);
 
         instantiateComponents();
@@ -71,6 +71,24 @@ public class Main extends JFrame {
         JOptionPane.showMessageDialog(this, message);
     }
 
+    private int getSmoothIntensity() {
+        JSlider slider = new JSlider(1, 21, 5);
+        slider.setMajorTickSpacing(5);
+        slider.setMinorTickSpacing(1);
+        slider.setPaintTicks(true);
+        slider.setPaintLabels(true);
+
+        int option = JOptionPane.showConfirmDialog(
+                this,
+                slider,
+                "Selecione a intensidade da suavização",
+                JOptionPane.OK_CANCEL_OPTION,
+                JOptionPane.QUESTION_MESSAGE
+        );
+
+        return option == JOptionPane.OK_OPTION ? slider.getValue() : -1;
+    }
+
     private void openPersonImage() {
         selectImage(true);
     }
@@ -87,24 +105,28 @@ public class Main extends JFrame {
             var landscapeRGBMatrix = getRGBMatrix(selectedLandscapeImage);
 
             var composedRGBAMatrix = compositePersonOverLandscape(personTransparentBackground, landscapeRGBMatrix);
-            saveProcessedPersonImage(composedRGBAMatrix, "composed_person_landscape.png");
+            displayProcessedPersonImage(composedRGBAMatrix, "Resultado da composição normal");
         }
     }
 
     private void compositePersonInLandscapeSmooth() {
         if (validateImagesAreSelected()) {
+            int intensity = getSmoothIntensity();
+            if (intensity == -1) return;
+
             var personRGBMatrix = getRGBMatrix(selectedPersonImage);
             var personTransparentBackground = setTransparentBackground(personRGBMatrix);
 
             var landscapeRGBMatrix = getRGBMatrix(selectedLandscapeImage);
-            var landscapeSmoothedRGBMatrix = applySmoothFilter(landscapeRGBMatrix);
+            var landscapeSmoothedRGBMatrix = applyEnhancedSmoothFilter(landscapeRGBMatrix, intensity);
 
             var composedRGBAMatrix = compositePersonOverLandscape(personTransparentBackground, landscapeSmoothedRGBMatrix);
-            saveProcessedPersonImage(composedRGBAMatrix, "composed_person_landscape_smooth.png");
+            var title = String.format("Resultado da composição suave (intensidade: %d)", intensity);
+            displayProcessedPersonImage(composedRGBAMatrix, title);
         }
     }
 
-    private void saveProcessedPersonImage(int[][][] rgbMatrix, String outputPath) {
+    private void displayProcessedPersonImage(int[][][] rgbMatrix, String title) {
         int width = rgbMatrix.length;
         int height = rgbMatrix[0].length;
 
@@ -122,14 +144,7 @@ public class Main extends JFrame {
             }
         }
 
-        try {
-            File outputFile = new File(outputPath);
-            ImageIO.write(processedImage, "png", outputFile);
-            displayAlertDialog("Imagem processada salva em: " + outputFile.getAbsolutePath());
-        } catch (IOException ex) {
-            ex.printStackTrace();
-            displayAlertDialog("Erro ao salvar imagem processada.");
-        }
+        displaySelectedImage(processedImage, title);
     }
 
     private boolean validateImagesAreSelected() {
@@ -222,21 +237,35 @@ public class Main extends JFrame {
         return composedRGBAMatrix;
     }
 
-    private int[][][] applySmoothFilter(int[][][] rgbMatrix) {
+    private int[][][] applyEnhancedSmoothFilter(int[][][] rgbMatrix, int KERNEL_SIZE) {
         int width = rgbMatrix.length;
         int height = rgbMatrix[0].length;
 
         int[][][] smoothedRGBMatrix = new int[width][height][3];
-        int SMOOTH_FACTOR = 9;
 
-        for (int x = 1; x < width - 1; x++) {
-            for (int y = 1; y < height - 1; y++) {
+        int[][] KERNEL = new int[KERNEL_SIZE][KERNEL_SIZE];
+        for (int i = 0; i < KERNEL_SIZE; i++) {
+            for (int j = 0; j < KERNEL_SIZE; j++) {
+                KERNEL[i][j] = 1;
+            }
+        }
+
+        int SMOOTH_FACTOR = KERNEL_SIZE * KERNEL_SIZE;
+
+        int offset = KERNEL_SIZE / 2;
+
+        for (int x = offset; x < width - offset; x++) {
+            for (int y = offset; y < height - offset; y++) {
                 int sumR = 0, sumG = 0, sumB = 0;
-                for (int dx = -1; dx <= 1; dx++) {
-                    for (int dy = -1; dy <= 1; dy++) {
-                        sumR += rgbMatrix[x + dx][y + dy][0];
-                        sumG += rgbMatrix[x + dx][y + dy][1];
-                        sumB += rgbMatrix[x + dx][y + dy][2];
+
+                for (int dx = 0; dx < KERNEL_SIZE; dx++) {
+                    for (int dy = 0; dy < KERNEL_SIZE; dy++) {
+                        int pixelX = x + dx - offset;
+                        int pixelY = y + dy - offset;
+
+                        sumR += rgbMatrix[pixelX][pixelY][0] * KERNEL[dx][dy];
+                        sumG += rgbMatrix[pixelX][pixelY][1] * KERNEL[dx][dy];
+                        sumB += rgbMatrix[pixelX][pixelY][2] * KERNEL[dx][dy];
                     }
                 }
 
@@ -264,10 +293,10 @@ public class Main extends JFrame {
             BufferedImage selectedImage = ImageIO.read(new File(path));
             if (isPersonImage) {
                 selectedPersonImage = selectedImage;
-                displaySelectedImage(selectedPersonImage, "Selected Person Image");
+                displaySelectedImage(selectedPersonImage, "Imagem da pessoa selecionada");
             } else {
                 selectedLandscapeImage = selectedImage;
-                displaySelectedImage(selectedLandscapeImage, "Selected Landscape Image");
+                displaySelectedImage(selectedLandscapeImage, "Imagem da paisagem selecionada");
             }
         } catch (IOException ex) {
             ex.printStackTrace();
@@ -307,9 +336,6 @@ public class Main extends JFrame {
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            Main app = new Main();
-            app.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        });
+        SwingUtilities.invokeLater(Main::new);
     }
 }
