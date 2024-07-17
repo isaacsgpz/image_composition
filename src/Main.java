@@ -97,6 +97,10 @@ public class Main extends JFrame {
             var personTransparentBackground = setTransparentBackground(personRGBMatrix);
 
             var landscapeRGBMatrix = getRGBMatrix(selectedLandscapeImage);
+            var landscapeSmoothedRGBMatrix = applySmoothFilter(landscapeRGBMatrix);
+
+            var composedRGBAMatrix = compositePersonOverLandscape(personTransparentBackground, landscapeSmoothedRGBMatrix);
+            saveProcessedPersonImage(composedRGBAMatrix, "composed_person_landscape_smooth.png");
         }
     }
 
@@ -188,41 +192,63 @@ public class Main extends JFrame {
         int width = landscapeRGBMatrix.length;
         int height = landscapeRGBMatrix[0].length;
 
-        // Criar uma nova matriz RGBA para a imagem composta
         int[][][] composedRGBAMatrix = new int[width][height][4];
-
-        // Copiar a paisagem para a matriz composta
         for (int x = 0; x < width; x++) {
             for (int y = 0; y < height; y++) {
-                composedRGBAMatrix[x][y][0] = landscapeRGBMatrix[x][y][0]; // R
-                composedRGBAMatrix[x][y][1] = landscapeRGBMatrix[x][y][1]; // G
-                composedRGBAMatrix[x][y][2] = landscapeRGBMatrix[x][y][2]; // B
-                composedRGBAMatrix[x][y][3] = 255; // A (totalmente opaco)
+                composedRGBAMatrix[x][y][0] = landscapeRGBMatrix[x][y][0];
+                composedRGBAMatrix[x][y][1] = landscapeRGBMatrix[x][y][1];
+                composedRGBAMatrix[x][y][2] = landscapeRGBMatrix[x][y][2];
+                composedRGBAMatrix[x][y][3] = 255;
             }
         }
 
-        // Sobrepor a imagem da pessoa com fundo transparente na matriz composta
         int personWidth = personRGBMatrix.length;
         int personHeight = personRGBMatrix[0].length;
 
-        // Calcular a posição centralizada para a pessoa na paisagem
         int startX = (width - personWidth) / 2;
         int startY = (height - personHeight) / 2;
 
         for (int x = 0; x < personWidth; x++) {
             for (int y = 0; y < personHeight; y++) {
-                // Copiar os pixels da pessoa para a matriz composta, mantendo a transparência
-                if (personRGBMatrix[x][y][3] > 0) { // Verificar se o pixel da pessoa não é transparente
-                    composedRGBAMatrix[startX + x][startY + y][0] = personRGBMatrix[x][y][0]; // R
-                    composedRGBAMatrix[startX + x][startY + y][1] = personRGBMatrix[x][y][1]; // G
-                    composedRGBAMatrix[startX + x][startY + y][2] = personRGBMatrix[x][y][2]; // B
-                    composedRGBAMatrix[startX + x][startY + y][3] = personRGBMatrix[x][y][3]; // A (transparência)
+                if (personRGBMatrix[x][y][3] > 0) {
+                    composedRGBAMatrix[startX + x][startY + y][0] = personRGBMatrix[x][y][0];
+                    composedRGBAMatrix[startX + x][startY + y][1] = personRGBMatrix[x][y][1];
+                    composedRGBAMatrix[startX + x][startY + y][2] = personRGBMatrix[x][y][2];
+                    composedRGBAMatrix[startX + x][startY + y][3] = personRGBMatrix[x][y][3];
                 }
             }
         }
 
         return composedRGBAMatrix;
     }
+
+    private int[][][] applySmoothFilter(int[][][] rgbMatrix) {
+        int width = rgbMatrix.length;
+        int height = rgbMatrix[0].length;
+
+        int[][][] smoothedRGBMatrix = new int[width][height][3];
+        int SMOOTH_FACTOR = 9;
+
+        for (int x = 1; x < width - 1; x++) {
+            for (int y = 1; y < height - 1; y++) {
+                int sumR = 0, sumG = 0, sumB = 0;
+                for (int dx = -1; dx <= 1; dx++) {
+                    for (int dy = -1; dy <= 1; dy++) {
+                        sumR += rgbMatrix[x + dx][y + dy][0];
+                        sumG += rgbMatrix[x + dx][y + dy][1];
+                        sumB += rgbMatrix[x + dx][y + dy][2];
+                    }
+                }
+
+                smoothedRGBMatrix[x][y][0] = sumR / SMOOTH_FACTOR;
+                smoothedRGBMatrix[x][y][1] = sumG / SMOOTH_FACTOR;
+                smoothedRGBMatrix[x][y][2] = sumB / SMOOTH_FACTOR;
+            }
+        }
+
+        return smoothedRGBMatrix;
+    }
+
 
     private void selectImage(boolean isPersonImage) {
         JFileChooser fileChooser = new JFileChooser();
