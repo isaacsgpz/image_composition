@@ -1,7 +1,14 @@
+/**
+ * Processamento de Imagens
+ * Alunos: Isaac Santiago e Marcus Vinícius
+ */
+
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.stream.IntStream;
 import javax.imageio.ImageIO;
 import javax.swing.*;
 
@@ -132,17 +139,18 @@ public class Main extends JFrame {
 
         BufferedImage processedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
 
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                int r = rgbMatrix[x][y][0];
-                int g = rgbMatrix[x][y][1];
-                int b = rgbMatrix[x][y][2];
-                int a = rgbMatrix[x][y][3];
+        IntStream.range(0, width).forEach(x ->
+                IntStream.range(0, height).forEach(y -> {
+                    int[] pixel = rgbMatrix[x][y];
+                    int r = pixel[0];
+                    int g = pixel[1];
+                    int b = pixel[2];
+                    int a = pixel[3];
 
-                int argb = (a << 24) | (r << 16) | (g << 8) | b;
-                processedImage.setRGB(x, y, argb);
-            }
-        }
+                    int argb = (a << 24) | (r << 16) | (g << 8) | b;
+                    processedImage.setRGB(x, y, argb);
+                })
+        );
 
         displaySelectedImage(processedImage, title);
     }
@@ -163,15 +171,14 @@ public class Main extends JFrame {
         int height = image.getHeight();
         int[][][] rgbMatrix = new int[width][height][3];
 
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                int rgb = image.getRGB(x, y);
-                rgbMatrix[x][y][0] = (rgb >> 16) & 0xFF;
-                rgbMatrix[x][y][1] = (rgb >> 8) & 0xFF;
-                rgbMatrix[x][y][2] = rgb & 0xFF;
-            }
-        }
-
+        IntStream.range(0, width).forEach(x ->
+                IntStream.range(0, height).forEach(y -> {
+                    int rgb = image.getRGB(x, y);
+                    rgbMatrix[x][y][0] = (rgb >> 16) & 0xFF;
+                    rgbMatrix[x][y][1] = (rgb >> 8) & 0xFF;
+                    rgbMatrix[x][y][2] = rgb & 0xFF;
+                })
+        );
         return rgbMatrix;
     }
 
@@ -181,25 +188,26 @@ public class Main extends JFrame {
 
         int[][][] newRGBMatrix = new int[width][height][4];
 
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                int r = rgbMatrix[x][y][0];
-                int g = rgbMatrix[x][y][1];
-                int b = rgbMatrix[x][y][2];
+        IntStream.range(0, width).forEach(x ->
+                IntStream.range(0, height).forEach(y -> {
+                    int r = rgbMatrix[x][y][0];
+                    int g = rgbMatrix[x][y][1];
+                    int b = rgbMatrix[x][y][2];
 
-                if (r > 200 && g > 200 && b > 200) {
-                    newRGBMatrix[x][y][0] = 0;
-                    newRGBMatrix[x][y][1] = 0;
-                    newRGBMatrix[x][y][2] = 0;
-                    newRGBMatrix[x][y][3] = 0;
-                } else {
-                    newRGBMatrix[x][y][0] = r;
-                    newRGBMatrix[x][y][1] = g;
-                    newRGBMatrix[x][y][2] = b;
-                    newRGBMatrix[x][y][3] = 255;
-                }
-            }
-        }
+                    if (r > 200 && g > 200 && b > 200) {
+                        newRGBMatrix[x][y][0] = 0;
+                        newRGBMatrix[x][y][1] = 0;
+                        newRGBMatrix[x][y][2] = 0;
+                        newRGBMatrix[x][y][3] = 0;
+                    } else {
+                        newRGBMatrix[x][y][0] = r;
+                        newRGBMatrix[x][y][1] = g;
+                        newRGBMatrix[x][y][2] = b;
+                        newRGBMatrix[x][y][3] = 255;
+                    }
+                })
+        );
+
         return newRGBMatrix;
     }
 
@@ -208,14 +216,15 @@ public class Main extends JFrame {
         int height = landscapeRGBMatrix[0].length;
 
         int[][][] composedRGBAMatrix = new int[width][height][4];
-        for (int x = 0; x < width; x++) {
-            for (int y = 0; y < height; y++) {
-                composedRGBAMatrix[x][y][0] = landscapeRGBMatrix[x][y][0];
-                composedRGBAMatrix[x][y][1] = landscapeRGBMatrix[x][y][1];
-                composedRGBAMatrix[x][y][2] = landscapeRGBMatrix[x][y][2];
-                composedRGBAMatrix[x][y][3] = 255;
-            }
-        }
+
+        IntStream.range(0, width).forEach(x ->
+                IntStream.range(0, height).forEach(y -> {
+                    composedRGBAMatrix[x][y][0] = landscapeRGBMatrix[x][y][0];
+                    composedRGBAMatrix[x][y][1] = landscapeRGBMatrix[x][y][1];
+                    composedRGBAMatrix[x][y][2] = landscapeRGBMatrix[x][y][2];
+                    composedRGBAMatrix[x][y][3] = 255;
+                })
+        );
 
         int personWidth = personRGBMatrix.length;
         int personHeight = personRGBMatrix[0].length;
@@ -223,16 +232,16 @@ public class Main extends JFrame {
         int startX = (width - personWidth) / 2;
         int startY = (height - personHeight) / 2;
 
-        for (int x = 0; x < personWidth; x++) {
-            for (int y = 0; y < personHeight; y++) {
-                if (personRGBMatrix[x][y][3] > 0) {
-                    composedRGBAMatrix[startX + x][startY + y][0] = personRGBMatrix[x][y][0];
-                    composedRGBAMatrix[startX + x][startY + y][1] = personRGBMatrix[x][y][1];
-                    composedRGBAMatrix[startX + x][startY + y][2] = personRGBMatrix[x][y][2];
-                    composedRGBAMatrix[startX + x][startY + y][3] = personRGBMatrix[x][y][3];
-                }
-            }
-        }
+        IntStream.range(0, personWidth).forEach(x ->
+                IntStream.range(0, personHeight).forEach(y -> {
+                    if (personRGBMatrix[x][y][3] > 0) {
+                        composedRGBAMatrix[startX + x][startY + y][0] = personRGBMatrix[x][y][0];
+                        composedRGBAMatrix[startX + x][startY + y][1] = personRGBMatrix[x][y][1];
+                        composedRGBAMatrix[startX + x][startY + y][2] = personRGBMatrix[x][y][2];
+                        composedRGBAMatrix[startX + x][startY + y][3] = personRGBMatrix[x][y][3];
+                    }
+                })
+        );
 
         return composedRGBAMatrix;
     }
@@ -244,36 +253,36 @@ public class Main extends JFrame {
         int[][][] smoothedRGBMatrix = new int[width][height][3];
 
         int[][] KERNEL = new int[KERNEL_SIZE][KERNEL_SIZE];
-        for (int i = 0; i < KERNEL_SIZE; i++) {
-            for (int j = 0; j < KERNEL_SIZE; j++) {
-                KERNEL[i][j] = 1;
-            }
-        }
+        IntStream.range(0, KERNEL_SIZE).forEach(i ->
+                IntStream.range(0, KERNEL_SIZE).forEach(j -> KERNEL[i][j] = 1)
+        );
 
         int SMOOTH_FACTOR = KERNEL_SIZE * KERNEL_SIZE;
-
         int offset = KERNEL_SIZE / 2;
 
-        for (int x = offset; x < width - offset; x++) {
-            for (int y = offset; y < height - offset; y++) {
-                int sumR = 0, sumG = 0, sumB = 0;
+        IntStream.range(offset, width - offset).forEach(x ->
+                IntStream.range(offset, height - offset).forEach(y -> {
+                    int[] sums = IntStream.range(0, KERNEL_SIZE * KERNEL_SIZE)
+                            .mapToObj(k -> {
+                                int dx = k / KERNEL_SIZE;
+                                int dy = k % KERNEL_SIZE;
+                                int pixelX = x + dx - offset;
+                                int pixelY = y + dy - offset;
+                                return new int[]{
+                                        rgbMatrix[pixelX][pixelY][0] * KERNEL[dx][dy],
+                                        rgbMatrix[pixelX][pixelY][1] * KERNEL[dx][dy],
+                                        rgbMatrix[pixelX][pixelY][2] * KERNEL[dx][dy]
+                                };
+                            })
+                            .reduce(new int[]{0, 0, 0}, (acc, val) -> new int[]{
+                                    acc[0] + val[0], acc[1] + val[1], acc[2] + val[2]
+                            });
 
-                for (int dx = 0; dx < KERNEL_SIZE; dx++) {
-                    for (int dy = 0; dy < KERNEL_SIZE; dy++) {
-                        int pixelX = x + dx - offset;
-                        int pixelY = y + dy - offset;
-
-                        sumR += rgbMatrix[pixelX][pixelY][0] * KERNEL[dx][dy];
-                        sumG += rgbMatrix[pixelX][pixelY][1] * KERNEL[dx][dy];
-                        sumB += rgbMatrix[pixelX][pixelY][2] * KERNEL[dx][dy];
-                    }
-                }
-
-                smoothedRGBMatrix[x][y][0] = sumR / SMOOTH_FACTOR;
-                smoothedRGBMatrix[x][y][1] = sumG / SMOOTH_FACTOR;
-                smoothedRGBMatrix[x][y][2] = sumB / SMOOTH_FACTOR;
-            }
-        }
+                    smoothedRGBMatrix[x][y][0] = sums[0] / SMOOTH_FACTOR;
+                    smoothedRGBMatrix[x][y][1] = sums[1] / SMOOTH_FACTOR;
+                    smoothedRGBMatrix[x][y][2] = sums[2] / SMOOTH_FACTOR;
+                })
+        );
 
         return smoothedRGBMatrix;
     }
