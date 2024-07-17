@@ -80,14 +80,48 @@ public class Main extends JFrame {
     }
 
     private void compositePersonInLandscape() {
-        if (validateImagesAreSelected()) return;
-        System.out.println("Composite Normal");
+        if (validateImagesAreSelected()) {
+            var personRGBMatrix = getRGBMatrix(selectedPersonImage);
+            var personTransparentBackground = setTransparentBackground(personRGBMatrix);
+
+            var landscapeRGBMatrix = getRGBMatrix(selectedLandscapeImage);
+        }
     }
 
-    private void compositePersonInLandscapeSmooth() {
-        if (validateImagesAreSelected()) return;
+    private void saveProcessedPersonImage(int[][][] rgbMatrix, String outputPath) {
+        int width = rgbMatrix.length;
+        int height = rgbMatrix[0].length;
 
-        System.out.println("Composite Smooth");
+        BufferedImage processedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                int r = rgbMatrix[x][y][0];
+                int g = rgbMatrix[x][y][1];
+                int b = rgbMatrix[x][y][2];
+                int a = rgbMatrix[x][y][3];
+
+                int argb = (a << 24) | (r << 16) | (g << 8) | b;
+                processedImage.setRGB(x, y, argb);
+            }
+        }
+
+        try {
+            File outputFile = new File(outputPath);
+            ImageIO.write(processedImage, "png", outputFile);
+            displayAlertDialog("Imagem processada salva em: " + outputFile.getAbsolutePath());
+        } catch (IOException ex) {
+            ex.printStackTrace();
+            displayAlertDialog("Erro ao salvar imagem processada.");
+        }
+    }
+
+
+    private void compositePersonInLandscapeSmooth() {
+        if (validateImagesAreSelected()) {
+            var personRGBMatrix = getRGBMatrix(selectedPersonImage);
+            var landscapeRGBMatrix = getRGBMatrix(selectedLandscapeImage);
+        }
     }
 
     private boolean validateImagesAreSelected() {
@@ -100,6 +134,52 @@ public class Main extends JFrame {
         }
         return true;
     }
+
+    private int[][][] getRGBMatrix(BufferedImage image) {
+        int width = image.getWidth();
+        int height = image.getHeight();
+        int[][][] rgbMatrix = new int[width][height][3];
+
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                int rgb = image.getRGB(x, y);
+                rgbMatrix[x][y][0] = (rgb >> 16) & 0xFF;
+                rgbMatrix[x][y][1] = (rgb >> 8) & 0xFF;
+                rgbMatrix[x][y][2] = rgb & 0xFF;
+            }
+        }
+
+        return rgbMatrix;
+    }
+
+    private int[][][] setTransparentBackground(int[][][] rgbMatrix) {
+        int width = rgbMatrix.length;
+        int height = rgbMatrix[0].length;
+
+        int[][][] newRGBMatrix = new int[width][height][4];
+
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                int r = rgbMatrix[x][y][0];
+                int g = rgbMatrix[x][y][1];
+                int b = rgbMatrix[x][y][2];
+
+                if (r > 200 && g > 200 && b > 200) {
+                    newRGBMatrix[x][y][0] = 0;
+                    newRGBMatrix[x][y][1] = 0;
+                    newRGBMatrix[x][y][2] = 0;
+                    newRGBMatrix[x][y][3] = 0;
+                } else {
+                    newRGBMatrix[x][y][0] = r;
+                    newRGBMatrix[x][y][1] = g;
+                    newRGBMatrix[x][y][2] = b;
+                    newRGBMatrix[x][y][3] = 255;
+                }
+            }
+        }
+        return newRGBMatrix;
+    }
+
 
     private void selectImage(boolean isPersonImage) {
         JFileChooser fileChooser = new JFileChooser();
